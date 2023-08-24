@@ -26,8 +26,9 @@ sudo nmap -sC -sV -p- IP
 
 #UDP Scan
 sudo nmap -sU IP
-
+```
 #### Ping sweep
+```c
 #Bash: for i in {1..254} ;do (ping -c 1 172.16.5.$i | grep "bytes from" &) ;done
 
 #CMD: for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
