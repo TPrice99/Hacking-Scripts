@@ -29,11 +29,14 @@ sudo nmap -sU IP
 ```
 #### Ping sweep
 ```c
-#Bash: for i in {1..254} ;do (ping -c 1 172.16.5.$i | grep "bytes from" &) ;done
+#Bash
+for i in {1..254} ;do (ping -c 1 172.16.5.$i | grep "bytes from" &) ;done
 
-#CMD: for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
+#CMD
+for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
 
-#PowerShell: 1..254 | % {"172.16.5.$($*): $(Test-Connection -count 1 -comp 172.15.5.$($*) -quiet)"}
+#PowerShell
+1..254 | % {"172.16.5.$($*): $(Test-Connection -count 1 -comp 172.15.5.$($*) -quiet)"}
 ```
 
 ### Services
@@ -47,6 +50,7 @@ telnet IP PORT
 openssl s_client -connect IP:PORT -starttls ftp
 
 #anonymous login, try both
+ftp anonymous@IP
 username: anonymous password: blank
 username: anonymous password: anonymous
 
@@ -122,22 +126,36 @@ Linux
 
 #### MSSQL Port 1433
 ```c
+
 ```
 
 #### MySQL Port 3306
 ```c
+#Connect
+    #Local access
+    mysql -u user -p pass
+    #External
+    mysql -u username -ppass -h IP
+
+#Commands
+show databases;
+select version();
+use database;
+show tables;
+show columns from table;
+select * from <table> where <column> = "<string>";
 ```
 
 
 ## Enumeration
 
-### Linx
+### Linux
 
 ### Windows
 
 ## Exploit
 
-### Linx
+### Linux
 
 ### Windows
 
