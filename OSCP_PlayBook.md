@@ -396,7 +396,7 @@ whoami /priv
         Modify ACL:  type file  - is denied  >  icacls 'C:\Department Shares\Private\IT\cred.txt' /grant htb-student:F  >  type file
 
 whoami /groups
-    Check joplin notes for exploit path
+    Check joplin notes for exploit route
     Backup Operators
     Event Log Readers
     DNSAdmins

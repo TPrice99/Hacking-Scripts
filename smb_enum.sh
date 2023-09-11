@@ -10,11 +10,11 @@ crackmapexec smb $IP --shares -u '' -p ''
 
 echo "rpc enumeration"
 for i in $(seq 500 1100);do rpcclient -N -U "" $IP -c "queryuser 0x$(printf '%x\n' $i)" | grep "User Name\|user_rid\|group_rid" && echo "";done
-do rpcclient -N -U "" $IP -c "srvinfo";done
-do rpcclient -N -U "" $IP -c "enumdomains";done
-do rpcclient -N -U "" $IP -c "querydominfo";done
-do rpcclient -N -U "" $IP -c "netshareenumall";done
-do rpcclient -N -U "" $IP -c "enumdomusers";done
+rpcclient -N -U "" $IP -c "srvinfo"
+rpcclient -N -U "" $IP -c "enumdomains"
+rpcclient -N -U "" $IP -c "querydominfo"
+rpcclient -N -U "" $IP -c "netshareenumall"
+rpcclient -N -U "" $IP -c "enumdomusers"
 
 echo "Brute force login"
 read -p "Enter username list: " users
