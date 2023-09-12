@@ -2,9 +2,9 @@
 
 ## Table of Contents
 - [Utility](#utility)
-    -[File Transfer](#file-transfer)
-    -[Pivot](#pivot)
-    -[Upgrade Shell](#upgrade-shell)
+    - [File Transfer](#file-transfer)
+    - [Pivot](#pivot)
+    - [Upgrade Shell](#upgrade-shell)
 - [Recon](#recon)
     - [Nmap](#nmap)
     - [Services](#services)
@@ -17,11 +17,11 @@
         - [MSSQL](#mssql-port-1433)
         - [MySQL](#mysql-port-3306)
 - [Enumeration](#enumeration)
-        - [Linux](#linux)
-        - [Windows](#windows)
+    - [Linux](#linux)
+    - [Windows](#windows)
 - [Exploit](#exploit)
-        - [Linux](#linux-exploit)
-        - [Windows](#windows-exploit)
+    - [Linux](#linux-exploit)
+    - [Windows](#windows-exploit)
 - [Active Directory](#active-directory)
 
 ## Utility
