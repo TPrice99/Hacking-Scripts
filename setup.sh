@@ -7,6 +7,10 @@ mkdir ~/Documents/Tools
 
 #Windows
 cd ~/Documents/Windows
+mkdir exploits
+cd exploits
+wget https://github.com/itm4n/PrintSpoofer/releases/download/v1.0/PrintSpoofer32.exe
+wget https://github.com/itm4n/PrintSpoofer/releases/download/v1.0/PrintSpoofer64.exe
 
 #Linux
 cd ~/Documents/Linux
