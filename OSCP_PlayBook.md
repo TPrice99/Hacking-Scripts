@@ -601,6 +601,7 @@ sudo responder -I ens224 -A
     xfreerdp /v:IP /u:USER /p:PASS
     psexec.py inlanefreight.local/USER:'PASS'@IP
     wmiexec.py inlanefreight.local/USER:'PASS'@IP
+    evil-winrm -i IP -u USER -p PASS
 
 # Kerberoast
     ## Linux
