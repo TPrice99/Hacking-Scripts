@@ -16,6 +16,7 @@
         - [IMAP/ POP3](#imap-pop3-ports-110-143-993-995)
         - [MSSQL](#mssql-port-1433)
         - [MySQL](#mysql-port-3306)
+    - []()
 - [Enumeration](#enumeration)
     - [Linux](#linux)
     - [Windows](#windows)
@@ -112,6 +113,11 @@ sudo nmap -sC -sV -p- IP
 
 #UDP Scan
 sudo nmap -sU IP
+
+#Script/ Vulnerability Scan
+cd /usr/share/nmap/scripts; ls | grep SERVICE (smb, ftp)
+    SMB
+        nmap --script "smb-vuln*" -p 139,445 IP
 ```
 #### Ping sweep
 ```c
@@ -340,6 +346,11 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
         rsync -r ./.ssh/ IP::share_name/.ssh
         ssh -i ~/.ssh/id_rsa share_name@IP
 ```
+### OSINT
+```c
+
+```
+
 
 ## Enumeration
 
