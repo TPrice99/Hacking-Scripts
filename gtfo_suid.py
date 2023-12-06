@@ -13,15 +13,15 @@ while True:
 text = '\n'.join(lines)
 
 lines = text.strip().split('\n')
-
 file_paths=[]
 
 for line in lines:
-    parts = line.split()
-    file_path = ' '.join(parts[10:])
+    parts = line.split('/')
+    file_path = parts[-1]
     file_paths.append(file_path)
 
 for file_path in file_paths:
     file_path = file_path.split('/')
+    print (file_path)
     if file_path[-1] in list:
         print (file_path[-1])
