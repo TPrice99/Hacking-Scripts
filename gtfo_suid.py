@@ -22,6 +22,6 @@ for line in lines:
 
 for file_path in file_paths:
     file_path = file_path.split('/')
-    print (file_path)
+    #print (file_path)
     if file_path[-1] in list:
         print (file_path[-1])

